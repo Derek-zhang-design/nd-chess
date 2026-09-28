@@ -26,7 +26,8 @@ A browser-based multi-dimensional chess game, deployed as a static site to GitHu
   }
   ```
 - A square is empty if its key isn't in `pieces`.
-- **Default size:** 8 on every axis. Each axis's size will be configurable per game.
+- **Default size:** 4 dimensions, 8 on every axis. The dimension count and each axis's size are configurable per game.
+- **Minimum sizes:** the standard setup needs d1 ≥ 8 and d2 ≥ 4. Extra axes can be any size from 1 up.
 
 ### Default starting position
 - The standard chess setup on the d1 × d2 plane, with every other axis at its first square (UI "1", engine index 0).
@@ -68,11 +69,28 @@ A "diagonal" always means **equal distance along exactly 2 axes**. Direction cou
 No graphical board. The game is played through lists of pieces and their coordinates.
 
 - **Top bar:** game title and whose turn it is.
-- **Left column:** Black's pieces as a vertical list, each with its coordinate.
-- **Right column:** White's pieces, laid out the same way.
-- **Threat arrows:** arrows connect an attacking piece to the piece it threatens, drawn across the gap between the lists.
-- **Choosing a move:** click one of your pieces, and a dialog in the centre lists its possible moves.
+- **Left column:** a table of Black's pieces.
+- **Right column:** a table of White's pieces, laid out the same way.
+- **Piece tables:**
+  - One row per piece and one column per axis (d1 … dN). Coordinates are shown 1-based, in text one size smaller than the piece names.
+  - Each side's table can be collapsed as a whole. Collapsed, it shows only the piece names.
+  - Captured pieces stay in the table, greyed out and struck through, at the bottom.
+- **Threats:**
+  - Arrows connect an attacking piece's row to the row of the piece it threatens, drawn across the gap between the tables. They are faint by default. Hovering over or selecting a piece highlights its arrows and dims the rest, and arrows are hidden while the move dialog is open.
+  - A threatened piece's row gets a red stroke (outline). Colour is the threat marker; don't add badges.
+- **Choosing a move:** click one of your pieces, and a dialog in the centre offers its moves as controls rather than a flat list:
+  - **Axis dropdowns list axes only** (d1 … dN). The sign comes from a signed slider, not the dropdown.
+  - **Rook, bishop, queen, king:**
+    - A dropdown for the first axis, and a signed slider for the distance along it, e.g. −3 … +4. Negative moves toward index 0. Zero is not a move.
+    - The slider's range covers only legal distances. It stops at a blocking piece, and its end can be the square of an enemy piece (a capture).
+    - An optional second dropdown picks a different axis for a diagonal. A +/− toggle beside it sets that axis's sign. The distance along the second axis always equals the slider's absolute value, so the slider's legal range is recalculated when the toggle changes.
+    - For the king, the slider is limited to −1 … +1.
+  - **Knight:** a dropdown and +/− toggle for the 2-step axis, and a dropdown and +/− toggle for the 1-step axis (a different axis). No slider.
+  - **Pawn:** a dropdown for the forward axis, a slider of 1 … 2 (2 only on the first move), and a capture option for ±1 on d1.
+  - **Illegal options stay visible but faint and unselectable.** Axes or toggle states that lead to no legal move remain in the dropdown or on the toggle, but are disabled.
+  - Promotion: a piece picker in the same dialog.
 - **Confirming:** a floating button area at the bottom confirms the chosen move, or cancels it.
+- **Phones:** keep the layout. Expanded piece tables scroll horizontally in their own container rather than squeezing.
 
 ### Performance rules
 - Never enumerate every cell of the board.
@@ -100,13 +118,32 @@ These have been discussed and deliberately left out for now. They are candidates
 ## Structure
 
 ```
-index.html              Entry point; loads src/main.js as an ES module
-src/main.js             Wires the engine to the renderer
-src/engine/index.js     Game state and rules (pure JS, no DOM)
-src/render/index.js     Draws state to the page and captures input
-src/styles.css          Styles
-.github/workflows/      GitHub Pages deployment
+index.html               Entry point; loads src/main.js as an ES module
+src/main.js              Wires the engine to the renderer
+src/engine/index.js      Public engine API (re-exports the modules below)
+src/engine/coords.js     Position keys, bounds, offsets, axis differences
+src/engine/config.js     Game settings (dimensions, axis sizes) and defaults
+src/engine/pieces.js     Piece types, colours, standard starting position
+src/engine/movement.js   Move generation and geometric attack tests
+src/engine/game.js       Game state, applying moves, win detection, threats
+src/render/index.js      Draws state to the page and captures input
+src/styles.css           Styles
+tests/                   Engine tests (Node's built-in test runner)
+.github/workflows/       Runs tests, then deploys to GitHub Pages
 ```
+
+## Engine API
+
+- `createGame({ dimensions, shape, pieces })`: all options are optional. Default is 4 dimensions of size 8 with the standard setup. `pieces` is a custom setup: `[{ type, color, pos, hasMoved? }]`.
+- `getMoves(state, pos)`: all moves for the piece at `pos` (0-based position array).
+  - Each move is `{ from, to, pieceId, captureId, changes, promotion }`.
+  - `changes` lists the axes that move, as `[{ axis, delta }]`. The move dialog groups moves by it: one entry for a straight move, two for a diagonal, knight or pawn capture.
+- `applyMove(state, { from, to }, { promotion })`: validates the move and returns a **new** state. It never mutates the old one. `promotion` defaults to `'queen'`.
+- `getThreats(state)`: `[{ attackerId, targetId }]` for every enemy piece currently attacked.
+- `attacks(state, from, to)`: whether the piece at `from` attacks square `to`, tested geometrically.
+- `findPiece(state, id)`: `{ pos, piece }` or `null`.
+- State shape: `{ config, shape, pieces: Map<key, { id, type, color, hasMoved }>, turn, winner, captured, history }`.
+  - Piece ids (e.g. `white-rook-2`) stay the same for the whole game, so the UI can use them for table rows and arrows.
 
 ## Conventions
 
@@ -125,15 +162,18 @@ python3 -m http.server 8000
 
 Then open http://localhost:8000.
 
+## Testing
+
+```bash
+npm test
+```
+
+This uses Node's built-in test runner, with no dependencies to install. Add a test for every rule change.
+
 ## Deployment
 
-A push to `main` runs `.github/workflows/pages.yml`, which publishes the repo root to GitHub Pages. Live URL: https://derek-zhang-design.github.io/nd-chess/
+A push to `main` runs `.github/workflows/pages.yml`. It runs the tests, and if they pass, publishes the repo root to GitHub Pages. Live URL: https://derek-zhang-design.github.io/nd-chess/
 
 ## Open questions
 
-Discuss these next:
-
-- **Move list size.** A queen at 20D can have hundreds to thousands of moves. How should the move dialog group or filter them?
-- **Threat arrows.** Show all of them at once, or only those for the selected piece or on hover?
-- **Coordinate format.** How to show long coordinates (20 numbers at 20D) compactly in the piece lists.
-- **Narrow screens.** How the two side-by-side lists work at phone width.
+None right now. The interface details are expected to change once there's something playable.
