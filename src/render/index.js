@@ -1,12 +1,8 @@
-// Draws engine state to the page. Must not contain game rules.
-// Placeholder until the piece-table interface is built.
+// Draws engine state to the page and captures input. Must not contain game rules.
 
-export function createRenderer(root) {
-  return {
-    render(game) {
-      const dimensions = game.shape.length;
-      const status = game.winner ? `${game.winner} wins` : `${game.turn} to move`;
-      root.textContent = `${dimensions}D board (${game.shape.join(' × ')}) · ${game.pieces.size} pieces · ${status}`;
-    },
-  };
-}
+export { createSetupScreen, MIN_DIMENSIONS, MAX_DIMENSIONS } from './setup-screen.js';
+export { createPlayScreen } from './play-screen.js';
+export { createMoveDialog } from './move-dialog.js';
+export { createPicker } from './move-picker.js';
+export { renderTopBar, hideTopBar, setActions, button, actionHint, winnerCard } from './chrome.js';
+export { colorName, fullLabel } from './labels.js';

@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>ND Chess</title>
   <link rel="stylesheet" href="src/styles.css">
 </head>
 <body>
-  <header class="site-header">
-    <h1>ND Chess</h1>
-  </header>
-  <main id="app"></main>
+  <header id="top-bar" class="top-bar" hidden></header>
+  <main id="app" class="app"></main>
+  <div id="overlay" class="overlay" hidden></div>
+  <footer id="actions" class="action-bar" hidden></footer>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

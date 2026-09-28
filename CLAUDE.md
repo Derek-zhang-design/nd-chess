@@ -68,7 +68,14 @@ A "diagonal" always means **equal distance along exactly 2 axes**. Direction cou
 ### Interface (first version)
 No graphical board. The game is played through lists of pieces and their coordinates.
 
-- **Top bar:** game title and whose turn it is.
+**App flow:** configure screen → play → winner popup → **New game** returns to the configure screen, keeping the last settings.
+
+- **Configure screen:** a large centred heading, "[n]D Chess", where n is a text field typed directly into the heading.
+  - The field accepts digits only, in the range 2–20 for now.
+  - An out-of-range value shows the hint in red and disables **Start game**. Enter also starts the game.
+- **Action area:** a floating bar at the bottom of the screen holds every confirming button: Start game, Cancel / Confirm move, New game. When there's nothing to confirm, it shows a short hint.
+- **Winner popup:** a prominent centred card reading "[Colour] wins!", shown over the final position. **New game** appears in the action area.
+- **Top bar:** game title ("4D Chess") and whose turn it is, or who won.
 - **Left column:** a table of Black's pieces.
 - **Right column:** a table of White's pieces, laid out the same way.
 - **Piece tables:**
@@ -76,7 +83,7 @@ No graphical board. The game is played through lists of pieces and their coordin
   - Each side's table can be collapsed as a whole. Collapsed, it shows only the piece names.
   - Captured pieces stay in the table, greyed out and struck through, at the bottom.
 - **Threats:**
-  - Arrows connect an attacking piece's row to the row of the piece it threatens, drawn across the gap between the tables. They are faint by default. Hovering over or selecting a piece highlights its arrows and dims the rest, and arrows are hidden while the move dialog is open.
+  - Arrows connect an attacking piece's row to the row of the piece it threatens, drawn across the gap between the tables. They are faint by default. Hovering over a piece, or clicking an opponent's piece to pin it, highlights its arrows and dims the rest. Arrows are hidden while the move dialog is open.
   - A threatened piece's row gets a red stroke (outline). Colour is the threat marker; don't add badges.
 - **Choosing a move:** click one of your pieces, and a dialog in the centre offers its moves as controls rather than a flat list:
   - **Axis dropdowns list axes only** (d1 … dN). The sign comes from a signed slider, not the dropdown.
@@ -119,14 +126,21 @@ These have been discussed and deliberately left out for now. They are candidates
 
 ```
 index.html               Entry point; loads src/main.js as an ES module
-src/main.js              Wires the engine to the renderer
+src/main.js              App flow: holds the game state, switches screens, handles clicks
 src/engine/index.js      Public engine API (re-exports the modules below)
 src/engine/coords.js     Position keys, bounds, offsets, axis differences
 src/engine/config.js     Game settings (dimensions, axis sizes) and defaults
 src/engine/pieces.js     Piece types, colours, standard starting position
 src/engine/movement.js   Move generation and geometric attack tests
 src/engine/game.js       Game state, applying moves, win detection, threats
-src/render/index.js      Draws state to the page and captures input
+src/render/index.js      Public render API (re-exports the modules below)
+src/render/setup-screen.js  Configure screen ("[n]D Chess")
+src/render/play-screen.js   Piece tables, red threat outlines, threat arrows (SVG)
+src/render/move-dialog.js   Move dialog controls and preview
+src/render/move-picker.js   Maps engine moves to dialog fields (no DOM; tested in Node)
+src/render/chrome.js        Top bar, action area, buttons, winner popup
+src/render/labels.js        Display text: piece names, symbols, 1-based coordinates
+src/render/dom.js           h() / svg() element helpers
 src/styles.css           Styles
 tests/                   Engine tests (Node's built-in test runner)
 .github/workflows/       Runs tests, then deploys to GitHub Pages
