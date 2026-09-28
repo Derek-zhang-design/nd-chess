@@ -4,7 +4,9 @@
 import { h } from './dom.js';
 import { PROMOTION_TYPES, QUEEN } from '../engine/index.js';
 import { optionsAt, resolve, settle } from './move-picker.js';
-import { axisName, capitalize, formatCoord, formatDelta, fullLabel, pieceSymbol } from './labels.js';
+import {
+  SHOW_PIECE_ICONS, axisName, capitalize, formatCoord, formatDelta, fullLabel, pieceSymbol,
+} from './labels.js';
 
 let dialogCount = 0;
 
@@ -131,10 +133,16 @@ export function createMoveDialog({ piece, from, shape, picker, labelFor, onChang
   const preview = h('div', { class: 'dialog-preview', 'aria-live': 'polite' });
   const hasMoves = picker.entries.length > 0;
 
-  const element = h('section', { class: 'dialog', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': `${uid}-title` },
+  const element = h('section', {
+    class: `dialog theme-${piece.color}`,
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-labelledby': `${uid}-title`,
+  },
     h('header', { class: 'dialog-header' },
       h('h2', { class: 'dialog-title', id: `${uid}-title` },
-        h('span', { class: 'symbol', 'aria-hidden': 'true' }, pieceSymbol(piece)), ' ', fullLabel(piece)),
+        SHOW_PIECE_ICONS && h('span', { class: 'symbol', 'aria-hidden': 'true' }, pieceSymbol(piece)),
+        fullLabel(piece)),
       h('p', { class: 'dialog-subtitle' }, `Currently at ${formatCoord(from)}`),
     ),
     hasMoves
@@ -188,7 +196,9 @@ export function createMoveDialog({ piece, from, shape, picker, labelFor, onChang
             promotion = type;
             renderPreview();
           },
-        }, pieceSymbol({ type, color: piece.color }), ' ', capitalize(type))),
+        },
+          SHOW_PIECE_ICONS && h('span', { class: 'symbol', 'aria-hidden': 'true' }, pieceSymbol({ type, color: piece.color })),
+          capitalize(type))),
       ),
     );
   }

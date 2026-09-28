@@ -3,7 +3,9 @@
 
 import { h, svg } from './dom.js';
 import { WHITE, BLACK, parseKey } from '../engine/index.js';
-import { axisName, colorName, comparePieces, pieceLabel, pieceSymbol } from './labels.js';
+import {
+  SHOW_PIECE_ICONS, axisName, colorName, comparePieces, pieceLabel, pieceSymbol,
+} from './labels.js';
 
 function arrowHead(id, className) {
   return svg('marker', {
@@ -70,7 +72,7 @@ export function createPlayScreen({ onPieceClick }) {
         captured.map((piece) => pieceRow(piece, null, { captured: true })),
       ),
     );
-    scrollers[color] = h('div', { class: 'table-scroll' }, table);
+    scrollers[color] = h('div', { class: `table-scroll theme-${color}` }, table);
 
     const toggle = h('button', {
       type: 'button',
@@ -107,7 +109,7 @@ export function createPlayScreen({ onPieceClick }) {
     ].filter(Boolean).join(' ');
 
     const label = h('span', { class: 'piece-name' },
-      h('span', { class: 'symbol', 'aria-hidden': 'true' }, pieceSymbol(piece)),
+      SHOW_PIECE_ICONS && h('span', { class: 'symbol', 'aria-hidden': 'true' }, pieceSymbol(piece)),
       pieceLabel(piece),
       threatened && h('span', { class: 'visually-hidden' }, ' (under attack)'),
       captured && h('span', { class: 'visually-hidden' }, ' (captured)'),

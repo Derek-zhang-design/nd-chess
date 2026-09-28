@@ -39,7 +39,6 @@ export function actionHint(text) {
 export function winnerCard(game) {
   const moves = game.history.length;
   return h('section', { class: 'winner', role: 'alertdialog', 'aria-labelledby': 'winner-title' },
-    h('p', { class: 'winner-kicker' }, 'Game over'),
     h('h2', { class: 'winner-title', id: 'winner-title' }, `${colorName(game.winner)} wins!`),
     h('p', { class: 'winner-detail' },
       `${colorName(opponent(game.winner))}'s king was captured after ${moves} ${moves === 1 ? 'move' : 'moves'}.`),

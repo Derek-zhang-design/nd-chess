@@ -1,9 +1,17 @@
-// Configure screen: "[n]D Chess", where n is typed straight into the heading.
+// Configure screen: "[n]D Chess", where n is typed straight into the heading,
+// with step buttons above and below the number.
 
-import { h } from './dom.js';
+import { h, svg } from './dom.js';
 
 export const MIN_DIMENSIONS = 2;
 export const MAX_DIMENSIONS = 20;
+export const DEFAULT_SETUP_DIMENSIONS = 11;
+
+function chevron(direction) {
+  const d = direction === 'up' ? 'M 4 15 L 12 7 L 20 15' : 'M 4 9 L 12 17 L 20 9';
+  return svg('svg', { class: 'chevron', viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+    svg('path', { d }));
+}
 
 export function createSetupScreen({ value, onValidityChange, onSubmit }) {
   const input = h('input', {
@@ -12,12 +20,13 @@ export function createSetupScreen({ value, onValidityChange, onSubmit }) {
     inputmode: 'numeric',
     autocomplete: 'off',
     maxlength: '2',
-    'aria-label': 'Number of dimensions',
-    'aria-describedby': 'dim-hint',
+    'aria-label': `Number of dimensions, ${MIN_DIMENSIONS} to ${MAX_DIMENSIONS}`,
     value: String(value),
   });
-  const hint = h('p', { id: 'dim-hint', class: 'setup-hint' },
-    `Choose ${MIN_DIMENSIONS}–${MAX_DIMENSIONS} dimensions`);
+  const up = h('button', { type: 'button', class: 'step-button', 'aria-label': 'More dimensions', onClick: () => step(1) },
+    chevron('up'));
+  const down = h('button', { type: 'button', class: 'step-button', 'aria-label': 'Fewer dimensions', onClick: () => step(-1) },
+    chevron('down'));
 
   // Fit the field to its digits so "4D" and "12D" both read as one word.
   function fitWidth() {
@@ -28,13 +37,26 @@ export function createSetupScreen({ value, onValidityChange, onSubmit }) {
   input.addEventListener('input', () => {
     const digits = input.value.replace(/\D/g, '').slice(0, 2);
     if (digits !== input.value) input.value = digits;
-    fitWidth();
-    check();
+    changed();
   });
-  fitWidth();
   input.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') onSubmit();
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      step(event.key === 'ArrowUp' ? 1 : -1);
+    }
   });
+
+  function clamp(n) {
+    return Math.min(MAX_DIMENSIONS, Math.max(MIN_DIMENSIONS, n));
+  }
+
+  // Steps from the current number, pulling an out-of-range value back into range.
+  function step(delta) {
+    const current = input.value === '' ? MIN_DIMENSIONS - delta : Number(input.value);
+    input.value = String(clamp(current + delta));
+    changed();
+  }
 
   function getValue() {
     if (input.value === '') return null;
@@ -42,23 +64,29 @@ export function createSetupScreen({ value, onValidityChange, onSubmit }) {
     return n >= MIN_DIMENSIONS && n <= MAX_DIMENSIONS ? n : null;
   }
 
-  function check() {
-    const valid = getValue() !== null;
+  function changed() {
+    fitWidth();
+    const n = getValue();
+    const valid = n !== null;
     input.classList.toggle('is-invalid', !valid);
-    hint.classList.toggle('is-invalid', !valid);
     input.setAttribute('aria-invalid', String(!valid));
+    up.disabled = valid && n >= MAX_DIMENSIONS;
+    down.disabled = valid && n <= MIN_DIMENSIONS;
     onValidityChange(valid);
   }
 
   const element = h('section', { class: 'setup' },
-    h('h1', { class: 'setup-title' }, input, 'D Chess'),
-    hint,
+    h('h1', { class: 'setup-title' },
+      h('span', { class: 'stepper' }, up, input, down),
+      h('span', {}, 'D Chess'),
+    ),
   );
+
+  changed();
 
   return {
     element,
     getValue,
-    check,
     focus() {
       input.focus();
       input.select();

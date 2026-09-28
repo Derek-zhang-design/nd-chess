@@ -26,7 +26,7 @@ A browser-based multi-dimensional chess game, deployed as a static site to GitHu
   }
   ```
 - A square is empty if its key isn't in `pieces`.
-- **Default size:** 4 dimensions, 8 on every axis. The dimension count and each axis's size are configurable per game.
+- **Default size:** the configure screen starts at 11 dimensions (`DEFAULT_SETUP_DIMENSIONS`). The engine's own default, used by `createGame()` with no options and by the tests, is 4. Every axis is 8. The dimension count and each axis's size are configurable per game.
 - **Minimum sizes:** the standard setup needs d1 ≥ 8 and d2 ≥ 4. Extra axes can be any size from 1 up.
 
 ### Default starting position
@@ -70,17 +70,25 @@ No graphical board. The game is played through lists of pieces and their coordin
 
 **App flow:** configure screen → play → winner popup → **New game** returns to the configure screen, keeping the last settings.
 
-- **Configure screen:** a large centred heading, "[n]D Chess", where n is a text field typed directly into the heading.
-  - The field accepts digits only, in the range 2–20 for now.
-  - An out-of-range value shows the hint in red and disables **Start game**. Enter also starts the game.
+- **Configure screen:** a large centred heading, "[n]D Chess", where n is a text field typed directly into the heading. There's no description text.
+  - Up and down chevron buttons sit above and below the number. The arrow keys also step it.
+  - The field accepts digits only, in the range 2–20 for now, and defaults to **11**.
+  - An out-of-range value turns the underline red and disables **Start game**. Enter also starts the game.
 - **Action area:** a floating bar at the bottom of the screen holds every confirming button: Start game, Cancel / Confirm move, New game. When there's nothing to confirm, it shows a short hint.
-- **Winner popup:** a prominent centred card reading "[Colour] wins!", shown over the final position. **New game** appears in the action area.
+- **Winner popup:** a prominent centred card with generous padding, reading "[Colour] wins!" and a one-line detail. It's shown over the final position, and **New game** appears in the action area.
 - **Top bar:** game title ("4D Chess") and whose turn it is, or who won.
-- **Left column:** a table of Black's pieces.
-- **Right column:** a table of White's pieces, laid out the same way.
+- **Visual style:**
+  - **Zero saturation:** every colour is a neutral grey. Red is used only for threats (arrows and row outlines) and for an invalid dimension count.
+  - **Accent:** light grey (`--accent`) with dark text, used for the primary button, the "to move" badge, pressed toggles and the slider. Not blue.
+  - **Side themes:** Black's table and move dialog are black with white text (`.theme-black`); White's are white with black text (`.theme-white`). This holds regardless of light or dark mode.
+  - **Monospace** for table content: the piece tables, the preview coordinates and the distance readout.
+  - **Piece icons are hidden** until custom icons are designed. They're switched by `SHOW_PIECE_ICONS` in `src/render/labels.js`. The Unicode symbols are placeholders only.
+- **Left edge:** a table of Black's pieces.
+- **Right edge:** a table of White's pieces, laid out the same way.
 - **Piece tables:**
   - One row per piece and one column per axis (d1 … dN). Coordinates are shown 1-based, in text one size smaller than the piece names.
-  - Each side's table can be collapsed as a whole. Collapsed, it shows only the piece names.
+  - Each side's table can be collapsed as a whole. Collapsed, it shows only the piece names, and the table shrinks to fit.
+  - Tables stay on the outer edges of the screen. The gap between them is where the arrows run.
   - Captured pieces stay in the table, greyed out and struck through, at the bottom.
 - **Threats:**
   - Arrows connect an attacking piece's row to the row of the piece it threatens, drawn across the gap between the tables. They are faint by default. Hovering over a piece, or clicking an opponent's piece to pin it, highlights its arrows and dims the rest. Arrows are hidden while the move dialog is open.

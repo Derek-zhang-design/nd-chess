@@ -1,6 +1,8 @@
 // Draws engine state to the page and captures input. Must not contain game rules.
 
-export { createSetupScreen, MIN_DIMENSIONS, MAX_DIMENSIONS } from './setup-screen.js';
+export {
+  createSetupScreen, MIN_DIMENSIONS, MAX_DIMENSIONS, DEFAULT_SETUP_DIMENSIONS,
+} from './setup-screen.js';
 export { createPlayScreen } from './play-screen.js';
 export { createMoveDialog } from './move-dialog.js';
 export { createPicker } from './move-picker.js';

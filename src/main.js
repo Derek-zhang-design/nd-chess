@@ -1,10 +1,10 @@
 // App flow: configure screen → play → winner popup → back to configure.
 
 import {
-  createGame, getMoves, applyMove, getThreats, findPiece, DEFAULT_DIMENSIONS,
+  createGame, getMoves, applyMove, getThreats, findPiece,
 } from './engine/index.js';
 import {
-  createSetupScreen, createPlayScreen, createMoveDialog, createPicker,
+  createSetupScreen, DEFAULT_SETUP_DIMENSIONS, createPlayScreen, createMoveDialog, createPicker,
   renderTopBar, hideTopBar, setActions, button, actionHint, winnerCard,
   colorName, fullLabel,
 } from './render/index.js';
@@ -14,7 +14,7 @@ const app = document.getElementById('app');
 const overlay = document.getElementById('overlay');
 const actions = document.getElementById('actions');
 
-let dimensions = DEFAULT_DIMENSIONS;
+let dimensions = DEFAULT_SETUP_DIMENSIONS;
 let game = null;
 let play = null;
 let selection = null; // { pieceId, from, dialog, confirmButton } while the move dialog is open

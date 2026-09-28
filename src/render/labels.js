@@ -2,6 +2,10 @@
 
 import { WHITE } from '../engine/index.js';
 
+// Piece icons are hidden until custom ones are designed. Turn this on to show
+// the Unicode placeholders below wherever pieceIcon() is used.
+export const SHOW_PIECE_ICONS = false;
+
 const SYMBOLS = {
   king: ['♔', '♚'],
   queen: ['♕', '♛'],
