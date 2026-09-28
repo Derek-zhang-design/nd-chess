@@ -1,6 +1,8 @@
 /* ---------- Tokens ----------
    Every colour is a neutral grey (zero saturation). Red is used only for threats
-   (arrows and threatened-row outlines) and for an invalid dimension count. */
+   against the player to move and for an invalid dimension count.
+   Faint threat colours are solid blends with what's behind them (color-mix), never
+   transparency, so overlapping arrows and heads don't show through each other. */
 
 :root {
   color-scheme: light dark;
@@ -16,7 +18,7 @@
   --accent: #d6d6d6;
   --accent-text: #111111;
   --threat: #d23c3c;
-  --threat-faint: rgb(210 60 60 / 0.3);
+  --attack: #7a7a7a;
   --backdrop: rgb(0 0 0 / 0.3);
   --shadow: 0 0.5rem 2rem rgb(0 0 0 / 0.14);
 
@@ -44,7 +46,7 @@
     --accent: #d6d6d6;
     --accent-text: #111111;
     --threat: #ff6b6b;
-    --threat-faint: rgb(255 107 107 / 0.32);
+    --attack: #a8a8a8;
     --backdrop: rgb(0 0 0 / 0.5);
     --shadow: 0 0.5rem 2rem rgb(0 0 0 / 0.5);
   }
@@ -449,25 +451,48 @@ select {
   background: var(--selected);
 }
 
-/* Threatened pieces: red stroke around the row. */
-.piece-row.is-threatened > * {
-  box-shadow:
-    inset 0 0.125rem 0 var(--threat),
-    inset 0 -0.125rem 0 var(--threat);
+/* Threatened pieces: a stroke around the row, in the colour of the arrows pointing at it
+   (red: the player to move is threatened; grey: they're threatening). Faint by default,
+   bold when the piece or one of its attackers is highlighted, dim otherwise.
+   Blended with the table's own surface so it reads as faint on both black and white tables. */
+.piece-row[data-threat="danger"] {
+  --outline-base: var(--threat);
 }
 
-.piece-row.is-threatened > :first-child {
-  box-shadow:
-    inset 0 0.125rem 0 var(--threat),
-    inset 0 -0.125rem 0 var(--threat),
-    inset 0.125rem 0 0 var(--threat);
+.piece-row[data-threat="attack"] {
+  --outline-base: var(--attack);
 }
 
-.piece-row.is-threatened > :last-child {
+.piece-row[data-threat] {
+  --outline-color: color-mix(in srgb, var(--outline-base) 45%, var(--surface));
+}
+
+.piece-row[data-threat][data-emphasis="strong"] {
+  --outline-color: var(--outline-base);
+}
+
+.piece-row[data-threat][data-emphasis="dim"] {
+  --outline-color: color-mix(in srgb, var(--outline-base) 18%, var(--surface));
+}
+
+.piece-row[data-threat] > * {
   box-shadow:
-    inset 0 0.125rem 0 var(--threat),
-    inset 0 -0.125rem 0 var(--threat),
-    inset -0.125rem 0 0 var(--threat);
+    inset 0 0.125rem 0 var(--outline-color),
+    inset 0 -0.125rem 0 var(--outline-color);
+}
+
+.piece-row[data-threat] > :first-child {
+  box-shadow:
+    inset 0 0.125rem 0 var(--outline-color),
+    inset 0 -0.125rem 0 var(--outline-color),
+    inset 0.125rem 0 0 var(--outline-color);
+}
+
+.piece-row[data-threat] > :last-child {
+  box-shadow:
+    inset 0 0.125rem 0 var(--outline-color),
+    inset 0 -0.125rem 0 var(--outline-color),
+    inset -0.125rem 0 0 var(--outline-color);
 }
 
 .piece-row.is-captured > * {
@@ -489,27 +514,42 @@ select {
   pointer-events: none;
 }
 
+.arrow-danger {
+  --arrow-base: var(--threat);
+}
+
+.arrow-attack {
+  --arrow-base: var(--attack);
+}
+
+/* Arrows run over the page background, so their faint colours blend with --bg. */
+.arrow,
+.arrow-head {
+  --arrow-color: color-mix(in srgb, var(--arrow-base) 45%, var(--bg));
+}
+
+.arrow.is-strong,
+.arrow-head.is-strong {
+  --arrow-color: var(--arrow-base);
+}
+
+.arrow.is-dim,
+.arrow-head.is-dim {
+  --arrow-color: color-mix(in srgb, var(--arrow-base) 16%, var(--bg));
+}
+
 .arrow {
   fill: none;
-  stroke: var(--threat-faint);
+  stroke: var(--arrow-color);
   stroke-width: 0.09375rem;
 }
 
-.arrow.is-dim {
-  opacity: 0.35;
-}
-
-.arrow.is-focus {
-  stroke: var(--threat);
+.arrow.is-strong {
   stroke-width: 0.140625rem;
 }
 
 .arrow-head {
-  fill: var(--threat-faint);
-}
-
-.arrow-head.is-focus {
-  fill: var(--threat);
+  fill: var(--arrow-color);
 }
 
 /* ---------- Overlay: move dialog and winner popup ---------- */

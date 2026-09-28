@@ -1,5 +1,10 @@
 // Play screen: Black's piece table on the left, White's on the right,
 // and threat arrows drawn across the gap between them.
+//
+// Threat colours are from the point of view of the player to move:
+//   red  ("danger")  an arrow into one of their pieces: they are being threatened
+//   grey ("attack")  an arrow from one of their pieces: they are threatening
+// A threatened row's outline uses the same colour and emphasis as its arrows.
 
 import { h, svg } from './dom.js';
 import { WHITE, BLACK, parseKey } from '../engine/index.js';
@@ -7,15 +12,22 @@ import {
   SHOW_PIECE_ICONS, axisName, colorName, comparePieces, pieceLabel, pieceSymbol,
 } from './labels.js';
 
-// Arrowhead length in screen pixels (SVG user units), for faint and highlighted arrows.
-const HEAD_LENGTH = { faint: 7, focus: 9 };
+// Arrowhead length in screen pixels (SVG user units), by emphasis.
+const HEAD_LENGTH = { strong: 9, soft: 7, dim: 7 };
+const KINDS = ['danger', 'attack'];
+const EMPHASES = ['dim', 'soft', 'strong'];
+
+// When a row both sends and receives arrows, outgoing arrows leave above its
+// centre and incoming ones arrive below, this fraction of the row height apart.
+const NODE_OFFSET = 0.22;
 
 // The marker is anchored at the middle of the triangle's base (refX 0), and each
 // line stops HEAD_LENGTH short of the target. The triangle then continues the line
-// instead of sitting on top of it, so nothing shows through a translucent head.
-function arrowHead(id, className, length) {
+// instead of sitting on top of it.
+function arrowHead(kind, emphasis) {
+  const length = HEAD_LENGTH[emphasis];
   return svg('marker', {
-    id,
+    id: `arrow-head-${kind}-${emphasis}`,
     viewBox: '0 0 10 10',
     refX: '0',
     refY: '5',
@@ -23,7 +35,7 @@ function arrowHead(id, className, length) {
     markerWidth: String(length),
     markerHeight: String(length),
     orient: 'auto',
-  }, svg('path', { d: 'M 0 0 L 10 5 L 0 10 z', class: className }));
+  }, svg('path', { d: 'M 0 0 L 10 5 L 0 10 z', class: `arrow-head arrow-${kind} is-${emphasis}` }));
 }
 
 export function createPlayScreen({ onPieceClick }) {
@@ -110,7 +122,6 @@ export function createPlayScreen({ onPieceClick }) {
     const classes = [
       'piece-row',
       selectable && 'is-selectable',
-      threatened && 'is-threatened',
       selected && 'is-selected',
       captured && 'is-captured',
     ].filter(Boolean).join(' ');
@@ -147,8 +158,19 @@ export function createPlayScreen({ onPieceClick }) {
     return element.querySelector(`tr[data-piece-id="${id}"]`);
   }
 
-  // Arrows run from the attacker's row to the target's row, across the gap.
-  // They're faint by default; the hovered or pinned piece's arrows are bold and the rest dim.
+  // Red if the target belongs to the player to move, grey if they're the attacker.
+  function kindOf(targetId) {
+    return colorById.get(targetId) === state.game.turn ? 'danger' : 'attack';
+  }
+
+  // Bold for the hovered or pinned piece's arrows, dim for the rest while something
+  // is highlighted, and soft when nothing is.
+  function emphasisOf(focus, ids) {
+    if (focus === null) return 'soft';
+    return ids.includes(focus) ? 'strong' : 'dim';
+  }
+
+  // Outlines and arrows are restyled here, not in renderSide, so hovering doesn't rebuild the tables.
   function drawArrows() {
     if (!state || !element.isConnected) return;
     const { threats, focusId, arrowsHidden } = state;
@@ -157,46 +179,72 @@ export function createPlayScreen({ onPieceClick }) {
     for (const row of element.querySelectorAll('tr.is-focus')) row.classList.remove('is-focus');
     if (focus) rowFor(focus)?.classList.add('is-focus');
 
+    drawOutlines(threats, focus);
+
     arrows.replaceChildren(svg('defs', {},
-      arrowHead('arrow-head', 'arrow-head', HEAD_LENGTH.faint),
-      arrowHead('arrow-head-focus', 'arrow-head is-focus', HEAD_LENGTH.focus),
-    ));
+      KINDS.flatMap((kind) => EMPHASES.map((emphasis) => arrowHead(kind, emphasis)))));
     if (arrowsHidden) return;
 
     const box = element.getBoundingClientRect();
     const blackEdge = scrollers[BLACK].getBoundingClientRect().right - box.left;
     const whiteEdge = scrollers[WHITE].getBoundingClientRect().left - box.left;
-    const rowY = (id) => {
+
+    const sends = new Set(threats.map((t) => t.attackerId));
+    const receives = new Set(threats.map((t) => t.targetId));
+    const nodeY = (id, role) => {
       const row = rowFor(id);
       if (!row) return null;
       const r = row.getBoundingClientRect();
-      return r.top + r.height / 2 - box.top;
+      const center = r.top + r.height / 2 - box.top;
+      if (!(sends.has(id) && receives.has(id))) return center;
+      const offset = r.height * NODE_OFFSET;
+      return role === 'out' ? center - offset : center + offset;
     };
 
-    const faint = [];
-    const strong = [];
+    const layers = { dim: [], soft: [], strong: [] };
     for (const { attackerId, targetId } of threats) {
-      const y1 = rowY(attackerId);
-      const y2 = rowY(targetId);
+      const y1 = nodeY(attackerId, 'out');
+      const y2 = nodeY(targetId, 'in');
       if (y1 === null || y2 === null) continue;
 
+      const kind = kindOf(targetId);
+      const emphasis = emphasisOf(focus, [attackerId, targetId]);
       const fromBlack = colorById.get(attackerId) === BLACK;
       const direction = fromBlack ? 1 : -1;
-      const isFocus = focus !== null && (focus === attackerId || focus === targetId);
       const x1 = fromBlack ? blackEdge + 2 : whiteEdge - 2;
       const tip = fromBlack ? whiteEdge - 4 : blackEdge + 4;
       // The curve ends flat, so the head points straight at the target row.
-      const x2 = tip - direction * (isFocus ? HEAD_LENGTH.focus : HEAD_LENGTH.faint);
+      const x2 = tip - direction * HEAD_LENGTH[emphasis];
       const mid = (x1 + x2) / 2;
 
-      const path = svg('path', {
+      layers[emphasis].push(svg('path', {
         d: `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`,
-        class: `arrow${isFocus ? ' is-focus' : focus ? ' is-dim' : ''}`,
-        'marker-end': `url(#${isFocus ? 'arrow-head-focus' : 'arrow-head'})`,
-      });
-      (isFocus ? strong : faint).push(path);
+        class: `arrow arrow-${kind} is-${emphasis}`,
+        'marker-end': `url(#arrow-head-${kind}-${emphasis})`,
+      }));
     }
-    arrows.append(...faint, ...strong);
+    arrows.append(...layers.dim, ...layers.soft, ...layers.strong);
+  }
+
+  // A threatened row is outlined in its arrows' colour. It's bold when the focus is
+  // the row itself or any piece attacking it.
+  function drawOutlines(threats, focus) {
+    const attackersOf = new Map();
+    for (const { attackerId, targetId } of threats) {
+      if (!attackersOf.has(targetId)) attackersOf.set(targetId, []);
+      attackersOf.get(targetId).push(attackerId);
+    }
+    for (const row of element.querySelectorAll('tr.piece-row')) {
+      const id = row.dataset.pieceId;
+      const attackers = attackersOf.get(id);
+      if (!attackers) {
+        delete row.dataset.threat;
+        delete row.dataset.emphasis;
+        continue;
+      }
+      row.dataset.threat = kindOf(id);
+      row.dataset.emphasis = emphasisOf(focus, [id, ...attackers]);
+    }
   }
 
   return { element, update };

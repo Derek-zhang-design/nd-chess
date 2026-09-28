@@ -91,8 +91,13 @@ No graphical board. The game is played through lists of pieces and their coordin
   - Tables stay on the outer edges of the screen. The gap between them is where the arrows run.
   - Captured pieces stay in the table, greyed out and struck through, at the bottom.
 - **Threats:**
-  - Arrows connect an attacking piece's row to the row of the piece it threatens, drawn across the gap between the tables. They are faint by default. Hovering over a piece, or clicking an opponent's piece to pin it, highlights its arrows and dims the rest. Arrows are hidden while the move dialog is open.
-  - A threatened piece's row gets a red stroke (outline). Colour is the threat marker; don't add badges.
+  - Arrows connect an attacking piece's row to the row of the piece it threatens, drawn across the gap between the tables. Arrows are hidden while the move dialog is open.
+  - **Colour is from the view of the player to move.** Red means an arrow into one of their pieces (they are being threatened). Grey means an arrow from one of their pieces (they are threatening).
+  - **Emphasis:** arrows are soft (faint) by default. Hovering over a piece, or clicking an opponent's piece to pin it, makes its arrows strong and dims all the others.
+  - **Outlines:** a threatened piece's row gets an outline in the same colour and emphasis as the arrows pointing at it. It's strong when the piece itself or one of its attackers is highlighted. Colour is the threat marker; don't add badges.
+  - **Faint colours are solid blends** (`color-mix` with the background behind them), never transparency, so overlapping lines and heads don't show through each other.
+  - **Arrow ends:** each line stops at the middle of its arrowhead's base, and the head continues it to the target.
+  - **Two points per row when needed:** if a piece both threatens and is threatened, its outgoing arrows leave above the row's centre and incoming arrows arrive below it. Otherwise arrows use the centre.
 - **Choosing a move:** click one of your pieces, and a dialog in the centre offers its moves as controls rather than a flat list:
   - **Axis dropdowns list axes only** (d1 … dN). The sign comes from a signed slider, not the dropdown.
   - **Rook, bishop, queen, king:**
