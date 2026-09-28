@@ -7,14 +7,21 @@ import {
   SHOW_PIECE_ICONS, axisName, colorName, comparePieces, pieceLabel, pieceSymbol,
 } from './labels.js';
 
-function arrowHead(id, className) {
+// Arrowhead length in screen pixels (SVG user units), for faint and highlighted arrows.
+const HEAD_LENGTH = { faint: 7, focus: 9 };
+
+// The marker is anchored at the middle of the triangle's base (refX 0), and each
+// line stops HEAD_LENGTH short of the target. The triangle then continues the line
+// instead of sitting on top of it, so nothing shows through a translucent head.
+function arrowHead(id, className, length) {
   return svg('marker', {
     id,
     viewBox: '0 0 10 10',
-    refX: '9',
+    refX: '0',
     refY: '5',
-    markerWidth: '5',
-    markerHeight: '5',
+    markerUnits: 'userSpaceOnUse',
+    markerWidth: String(length),
+    markerHeight: String(length),
     orient: 'auto',
   }, svg('path', { d: 'M 0 0 L 10 5 L 0 10 z', class: className }));
 }
@@ -151,8 +158,8 @@ export function createPlayScreen({ onPieceClick }) {
     if (focus) rowFor(focus)?.classList.add('is-focus');
 
     arrows.replaceChildren(svg('defs', {},
-      arrowHead('arrow-head', 'arrow-head'),
-      arrowHead('arrow-head-focus', 'arrow-head is-focus'),
+      arrowHead('arrow-head', 'arrow-head', HEAD_LENGTH.faint),
+      arrowHead('arrow-head-focus', 'arrow-head is-focus', HEAD_LENGTH.focus),
     ));
     if (arrowsHidden) return;
 
@@ -174,10 +181,13 @@ export function createPlayScreen({ onPieceClick }) {
       if (y1 === null || y2 === null) continue;
 
       const fromBlack = colorById.get(attackerId) === BLACK;
-      const x1 = fromBlack ? blackEdge + 2 : whiteEdge - 2;
-      const x2 = fromBlack ? whiteEdge - 4 : blackEdge + 4;
-      const mid = (x1 + x2) / 2;
+      const direction = fromBlack ? 1 : -1;
       const isFocus = focus !== null && (focus === attackerId || focus === targetId);
+      const x1 = fromBlack ? blackEdge + 2 : whiteEdge - 2;
+      const tip = fromBlack ? whiteEdge - 4 : blackEdge + 4;
+      // The curve ends flat, so the head points straight at the target row.
+      const x2 = tip - direction * (isFocus ? HEAD_LENGTH.focus : HEAD_LENGTH.faint);
+      const mid = (x1 + x2) / 2;
 
       const path = svg('path', {
         d: `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`,
